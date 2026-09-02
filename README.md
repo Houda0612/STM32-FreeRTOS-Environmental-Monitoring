@@ -2,15 +2,29 @@
 
 
 
-\# 🌡️ STM32 FreeRTOS Environmental Monitoring System
+\# 🌡️ STM32 FreeRTOS Environmental Monitoring \& Control System
 
 
 
-Real-time environmental monitoring and fault-tolerant control system based on \*\*STM32F407VGT6\*\*, \*\*FreeRTOS\*\*, \*\*BME280 abstraction\*\*, and \*\*Renode simulation\*\*.
+\### Real-Time Environmental Monitoring, Fault Management and Automatic Recovery
 
 
 
-\*\*STM32F407 · FreeRTOS · Embedded C · I²C · UART · Renode\*\*
+!\[STM32](https://img.shields.io/badge/MCU-STM32F407VGT6-blue)
+
+!\[FreeRTOS](https://img.shields.io/badge/RTOS-FreeRTOS-green)
+
+!\[CMSIS](https://img.shields.io/badge/API-CMSIS--RTOS2-orange)
+
+!\[Language](https://img.shields.io/badge/Language-Embedded%20C-informational)
+
+!\[Simulation](https://img.shields.io/badge/Simulation-Renode-purple)
+
+!\[Status](https://img.shields.io/badge/Status-Functional%20Prototype-success)
+
+
+
+\*\*STM32F407 · FreeRTOS · CMSIS-RTOS2 · BME280 · I²C · UART · Renode\*\*
 
 
 
@@ -26,23 +40,53 @@ Real-time environmental monitoring and fault-tolerant control system based on \*
 
 
 
-This project implements a real-time environmental monitoring and control application using STM32 and FreeRTOS.
+This project implements a \*\*real-time environmental monitoring and control system\*\* based on the \*\*STM32F407VGT6\*\* microcontroller and \*\*FreeRTOS\*\*.
 
 
 
-The system monitors:
+The application monitors:
 
 
 
-\- Temperature
+\- 🌡️ Temperature
 
-\- Humidity
+\- 💧 Relative humidity
 
-\- Atmospheric pressure
+\- 🌬️ Atmospheric pressure
 
 
 
-It automatically manages ventilation, detects critical environmental conditions, handles sensor failures, activates fail-safe behavior, and performs automatic sensor recovery.
+Based on the environmental measurements, the controller automatically manages ventilation and detects abnormal operating conditions.
+
+
+
+The project also integrates:
+
+
+
+\- multitasking with FreeRTOS;
+
+\- inter-task communication;
+
+\- alarm synchronization;
+
+\- global system state management;
+
+\- sensor fault detection;
+
+\- fail-safe operation;
+
+\- periodic health monitoring;
+
+\- automatic sensor recovery.
+
+
+
+The current implementation is functionally validated using \*\*Renode simulation\*\*.
+
+
+
+A modular BME280 driver abstraction is used so that the application can later be connected to a physical BME280 sensor through I²C without redesigning the application architecture.
 
 
 
@@ -54,15 +98,21 @@ It automatically manages ventilation, detects critical environmental conditions,
 
 
 
+\- STM32F407VGT6 microcontroller
+
+\- ARM Cortex-M4
+
+\- Embedded C
+
 \- FreeRTOS / CMSIS-RTOS2
 
 \- BME280 sensor abstraction
 
 \- I²C communication
 
-\- UART diagnostics
+\- USART2 diagnostics
 
-\- SensorTask, ControlTask, UARTTask, AlarmTask
+\- Multi-task real-time architecture
 
 \- Message Queues
 
@@ -74,15 +124,17 @@ It automatically manages ventilation, detects critical environmental conditions,
 
 \- Software Timer
 
-\- Health Monitoring
+\- Environmental control logic
 
-\- Sensor Fault Detection
+\- Sensor fault detection
 
-\- Fail-Safe Mode
+\- Fail-safe ventilation
 
-\- Automatic Sensor Recovery
+\- Periodic health monitoring
 
-\- Renode Simulation
+\- Automatic sensor recovery
+
+\- Renode simulation and validation
 
 
 
@@ -100,69 +152,45 @@ flowchart TD
 
 
 
-&#x20;   BME\[BME280 / Simulation]
+&#x20;   A\[BME280 / Simulation Backend] --> B\[SensorTask]
 
-&#x20;   SENSOR\[SensorTask]
+&#x20;   B --> C\[Sensor Queue]
 
-&#x20;   QUEUE1\[Sensor Queue]
-
-&#x20;   CONTROL\[ControlTask]
-
-&#x20;   FAN\[FAN]
-
-&#x20;   FLAGS\[Event Flags]
-
-&#x20;   QUEUE2\[Status Queue]
-
-&#x20;   UART\[UARTTask]
-
-&#x20;   SEM\[Semaphore]
-
-&#x20;   ALARM\[AlarmTask]
-
-&#x20;   TIMER\[Software Timer]
-
-&#x20;   HEALTH\[Health Monitoring]
-
-&#x20;   RECOVERY\[Sensor Recovery]
+&#x20;   C --> D\[ControlTask]
 
 
 
-&#x20;   BME --> SENSOR
+&#x20;   D --> E\[FAN Control]
 
-&#x20;   SENSOR --> QUEUE1
+&#x20;   D --> F\[Event Flags]
 
-&#x20;   QUEUE1 --> CONTROL
+&#x20;   D --> G\[Status Queue]
 
-
-
-&#x20;   CONTROL --> FAN
-
-&#x20;   CONTROL --> FLAGS
-
-&#x20;   CONTROL --> QUEUE2
-
-&#x20;   QUEUE2 --> UART
+&#x20;   G --> H\[UARTTask]
 
 
 
-&#x20;   CONTROL --> SEM
+&#x20;   D --> I\[Alarm Semaphore]
 
-&#x20;   SEM --> ALARM
-
-
-
-&#x20;   TIMER --> HEALTH
-
-&#x20;   FLAGS --> HEALTH
+&#x20;   I --> J\[AlarmTask]
 
 
 
-&#x20;   SENSOR --> RECOVERY
+&#x20;   K\[Software Timer] --> L\[Health Monitoring]
 
-&#x20;   RECOVERY --> BME
+&#x20;   F --> L
+
+
+
+&#x20;   B --> M\[Sensor Recovery]
+
+&#x20;   M --> A
 
 ```
+
+
+
+The application separates acquisition, control, communication, alarm handling and supervision into independent software components.
 
 
 
@@ -174,17 +202,17 @@ flowchart TD
 
 
 
-| State | Condition | Fan |
+| State | Condition | Fan | Action |
 
-|---|---|:---:|
+|---|---|:---:|---|
 
-| `NORMAL` | T ≤ 30 °C and H ≤ 65% | OFF |
+| 🟢 `NORMAL` | T ≤ 30 °C and H ≤ 65% | OFF | Normal monitoring |
 
-| `VENTILATION` | T > 30 °C or H > 65% | ON |
+| 🟡 `VENTILATION` | T > 30 °C or H > 65% | ON | Automatic ventilation |
 
-| `ALARM` | T > 34 °C or H > 75% | ON |
+| 🔴 `ALARM` | T > 34 °C or H > 75% | ON | Environmental alarm |
 
-| `SENSOR\_FAULT` | BME280 reading failure | ON |
+| ⚠️ `SENSOR\_FAULT` | BME280 reading failure | ON | Fail-safe mode |
 
 
 
@@ -202,15 +230,287 @@ flowchart TD
 
 | Tasks | Separate application responsibilities |
 
-| Message Queues | Inter-task communication |
+| Sensor Queue | Transfers measurements from `SensorTask` to `ControlTask` |
 
-| Mutex | UART protection |
+| Status Queue | Transfers processed state from `ControlTask` to `UARTTask` |
 
-| Binary Semaphore | Alarm synchronization |
+| Mutex | Protects USART2 against concurrent access |
 
-| Event Flags | Global system state |
+| Binary Semaphore | Synchronizes alarm activation with `AlarmTask` |
 
-| Software Timer | Periodic health monitoring |
+| Event Flags | Represents the global system state |
+
+| Software Timer | Performs periodic health monitoring |
+
+
+
+\---
+
+
+
+\## 🔄 Main Tasks
+
+
+
+\### SensorTask
+
+
+
+`SensorTask` is responsible for acquiring environmental information from the BME280 driver abstraction.
+
+
+
+It handles:
+
+
+
+```text
+
+Temperature
+
+Humidity
+
+Pressure
+
+Sensor status
+
+```
+
+
+
+The acquired information is transmitted to `ControlTask` through a FreeRTOS Message Queue.
+
+
+
+\### ControlTask
+
+
+
+`ControlTask` analyzes the environmental measurements and determines the operating state:
+
+
+
+```text
+
+NORMAL
+
+VENTILATION
+
+ALARM
+
+SENSOR\_FAULT
+
+```
+
+
+
+It also manages:
+
+
+
+\- ventilation output;
+
+\- Event Flags;
+
+\- environmental alarm generation;
+
+\- fail-safe operation.
+
+
+
+\### UARTTask
+
+
+
+`UARTTask` receives processed system information and transmits diagnostic messages through USART2.
+
+
+
+Example:
+
+
+
+```text
+
+T = 25.0 C | H = 55.0 % | P = 1013.2 hPa | FAN = OFF | STATE = NORMAL
+
+```
+
+
+
+USART2 access is protected using a FreeRTOS Mutex.
+
+
+
+\### AlarmTask
+
+
+
+`AlarmTask` waits on a Binary Semaphore and handles alarm notifications.
+
+
+
+The system supports:
+
+
+
+```text
+
+Environmental alarm
+
+Sensor fault alarm
+
+Manual alarm
+
+```
+
+
+
+\---
+
+
+
+\## 🚩 Event Flags
+
+
+
+The system uses Event Flags to represent its global status.
+
+
+
+```c
+
+\#define EVENT\_SENSOR\_OK         (1U << 0)
+
+\#define EVENT\_VENTILATION       (1U << 1)
+
+\#define EVENT\_ENV\_ALARM         (1U << 2)
+
+\#define EVENT\_SENSOR\_FAULT      (1U << 3)
+
+\#define EVENT\_SENSOR\_RECOVERED  (1U << 4)
+
+```
+
+
+
+| System State | Active Event Flags |
+
+|---|---|
+
+| `NORMAL` | `EVENT\_SENSOR\_OK` |
+
+| `VENTILATION` | `EVENT\_SENSOR\_OK` + `EVENT\_VENTILATION` |
+
+| `ALARM` | `EVENT\_SENSOR\_OK` + `EVENT\_ENV\_ALARM` |
+
+| `SENSOR\_FAULT` | `EVENT\_SENSOR\_FAULT` |
+
+| Recovery | `EVENT\_SENSOR\_OK` + `EVENT\_SENSOR\_RECOVERED` |
+
+
+
+\---
+
+
+
+\## 🌡️ BME280 Driver
+
+
+
+The project contains a dedicated BME280 abstraction layer:
+
+
+
+```text
+
+Core/Inc/bme280.h
+
+Core/Src/bme280.c
+
+```
+
+
+
+Two modes are considered by the driver architecture.
+
+
+
+\### Simulation Mode
+
+
+
+Used for Renode functional validation.
+
+
+
+```c
+
+\#define BME280\_SIMULATION\_MODE 1
+
+```
+
+
+
+The simulation backend provides deterministic environmental measurements such as:
+
+
+
+```text
+
+25 °C / 55 %
+
+28 °C / 60 %
+
+32 °C / 68 %
+
+35 °C / 72 %
+
+27 °C / 58 %
+
+```
+
+
+
+These values allow the different control states to be tested automatically.
+
+
+
+\### Hardware Mode
+
+
+
+The driver structure is prepared for future communication with a physical BME280 using STM32 HAL I²C functions such as:
+
+
+
+```c
+
+HAL\_I2C\_Mem\_Read()
+
+HAL\_I2C\_Mem\_Write()
+
+HAL\_I2C\_IsDeviceReady()
+
+```
+
+
+
+BME280 identification uses:
+
+
+
+```text
+
+Chip ID register : 0xD0
+
+Expected value   : 0x60
+
+```
+
+
+
+> Current validation uses the simulated BME280 backend. Physical BME280 hardware validation is planned as future work.
 
 
 
@@ -222,7 +522,7 @@ flowchart TD
 
 
 
-When a sensor failure occurs:
+When a sensor reading fails, the controller enters a fail-safe state.
 
 
 
@@ -230,19 +530,19 @@ When a sensor failure occurs:
 
 BME280 Read Error
 
-&#x20;     ↓
+&#x20;       ↓
 
 SENSOR\_FAULT
 
-&#x20;     ↓
+&#x20;       ↓
 
 FAN forced ON
 
-&#x20;     ↓
+&#x20;       ↓
 
 Alarm triggered
 
-&#x20;     ↓
+&#x20;       ↓
 
 Automatic recovery attempt
 
@@ -250,7 +550,67 @@ Automatic recovery attempt
 
 
 
-After successful recovery:
+Example UART output:
+
+
+
+```text
+
+\*\*\* SENSOR FAULT - FAIL SAFE ACTIVE \*\*\*
+
+
+
+SENSOR READ ERROR | FAN = ON | STATE = SENSOR\_FAULT
+
+```
+
+
+
+The fail-safe strategy forces ventilation ON because environmental conditions cannot be considered reliable while the sensor is unavailable.
+
+
+
+\---
+
+
+
+\## ♻️ Automatic Sensor Recovery
+
+
+
+After detecting a sensor failure, the application attempts to restore the sensor automatically.
+
+
+
+```mermaid
+
+flowchart TD
+
+
+
+&#x20;   A\[SENSOR\_FAULT] --> B\[BME280\_Init]
+
+&#x20;   B --> C\[BME280\_Read]
+
+&#x20;   C --> D{Reading successful?}
+
+
+
+&#x20;   D -->|Yes| E\[SENSOR RECOVERED]
+
+&#x20;   E --> F\[Resume monitoring]
+
+
+
+&#x20;   D -->|No| G\[Wait before retry]
+
+&#x20;   G --> B
+
+```
+
+
+
+Successful recovery generates:
 
 
 
@@ -262,7 +622,63 @@ After successful recovery:
 
 
 
-The controller then resumes normal monitoring automatically.
+The controller then automatically resumes normal environmental monitoring.
+
+
+
+\---
+
+
+
+\## ❤️ Health Monitoring
+
+
+
+A FreeRTOS Software Timer periodically supervises the global system state through Event Flags.
+
+
+
+Example reports:
+
+
+
+```text
+
+\[HEALTH] SYSTEM OK
+
+```
+
+
+
+```text
+
+\[HEALTH] SYSTEM OK | VENTILATION ACTIVE
+
+```
+
+
+
+```text
+
+\[HEALTH] ENVIRONMENT ALARM
+
+```
+
+
+
+```text
+
+\[HEALTH] SENSOR FAULT | FAIL-SAFE ACTIVE
+
+```
+
+
+
+```text
+
+\[HEALTH] SENSOR RECOVERED | SYSTEM OPERATIONAL
+
+```
 
 
 
@@ -274,27 +690,33 @@ The controller then resumes normal monitoring automatically.
 
 
 
-The system was tested in Renode for the following scenarios:
+The application was tested under Renode using several operating scenarios.
 
 
 
-| Scenario | Result |
+| Scenario | Expected Behavior | Result |
 
-|---|:---:|
+|---|---|:---:|
 
-| Normal operation | ✅ |
+| Normal operation | FAN OFF + `NORMAL` | ✅ |
 
-| Ventilation activation | ✅ |
+| Elevated temperature/humidity | FAN ON + `VENTILATION` | ✅ |
 
-| Environmental alarm | ✅ |
+| Critical environment | FAN ON + `ALARM` | ✅ |
 
-| Sensor fault | ✅ |
+| Environmental alarm | `AlarmTask` activated | ✅ |
 
-| Fail-safe behavior | ✅ |
+| Sensor fault | `SENSOR\_FAULT` detected | ✅ |
 
-| Automatic recovery | ✅ |
+| Fail-safe mode | FAN forced ON | ✅ |
 
-| Health monitoring | ✅ |
+| Automatic recovery | Sensor operation restored | ✅ |
+
+| Health monitoring | Periodic reports generated | ✅ |
+
+| UART synchronization | Mutex protection active | ✅ |
+
+| Inter-task communication | Queues operational | ✅ |
 
 
 
@@ -303,6 +725,46 @@ The system was tested in Renode for the following scenarios:
 
 
 \## 📊 Simulation Result
+
+
+
+The following Renode UART output demonstrates the complete control sequence:
+
+
+
+```text
+
+NORMAL
+
+&#x20;    ↓
+
+VENTILATION
+
+&#x20;    ↓
+
+ALARM
+
+&#x20;    ↓
+
+SENSOR\_FAULT
+
+&#x20;    ↓
+
+FAIL-SAFE
+
+&#x20;    ↓
+
+SENSOR RECOVERY
+
+&#x20;    ↓
+
+NORMAL OPERATION
+
+```
+
+
+
+\### Full System Test
 
 
 
@@ -320,15 +782,27 @@ Example UART messages:
 
 ```text
 
-STATE = NORMAL
+T = 25.0 C | H = 55.0 % | P = 1013.2 hPa | FAN = OFF | STATE = NORMAL
 
-STATE = VENTILATION
 
-STATE = ALARM
+
+T = 32.0 C | H = 68.0 % | P = 1011.9 hPa | FAN = ON | STATE = VENTILATION
+
+
+
+\*\*\* ALARM TRIGGERED \*\*\*
+
+
+
+T = 35.0 C | H = 72.0 % | P = 1010.5 hPa | FAN = ON | STATE = ALARM
 
 
 
 \*\*\* SENSOR FAULT - FAIL SAFE ACTIVE \*\*\*
+
+
+
+SENSOR READ ERROR | FAN = ON | STATE = SENSOR\_FAULT
 
 
 
@@ -346,6 +820,42 @@ STATE = ALARM
 
 
 
+\## 🖥️ Renode Simulation
+
+
+
+Example Renode commands used to execute the firmware:
+
+
+
+```text
+
+mach create "STM32F4"
+
+
+
+machine LoadPlatformDescription @platforms/boards/stm32f4\_discovery-kit.repl
+
+
+
+sysbus LoadELF @C:/STM32\_Projects/STM32\_FreeRTOS\_Project/Debug/STM32\_FreeRTOS\_Project.elf
+
+
+
+showAnalyzer sysbus.usart2
+
+
+
+start
+
+```
+
+
+
+\---
+
+
+
 \## 📂 Project Structure
 
 
@@ -354,13 +864,19 @@ STATE = ALARM
 
 STM32\_FreeRTOS\_Project/
 
+│
+
 ├── Core/
 
 │   ├── Inc/
 
 │   │   ├── bme280.h
 
-│   │   └── main.h
+│   │   ├── main.h
+
+│   │   └── FreeRTOSConfig.h
+
+│   │
 
 │   └── Src/
 
@@ -368,7 +884,13 @@ STM32\_FreeRTOS\_Project/
 
 │       ├── bme280.c
 
-│       └── freertos.c
+│       ├── freertos.c
+
+│       ├── stm32f4xx\_it.c
+
+│       └── stm32f4xx\_hal\_msp.c
+
+│
 
 ├── Drivers/
 
@@ -376,13 +898,21 @@ STM32\_FreeRTOS\_Project/
 
 ├── Startup/
 
+│
+
 ├── docs/
 
 │   └── screenshots/
 
 │       └── 03\_full\_system\_test.png
 
+│
+
 ├── STM32\_FreeRTOS\_Project.ioc
+
+├── STM32F407VGTX\_FLASH.ld
+
+├── STM32F407VGTX\_RAM.ld
 
 ├── .gitignore
 
@@ -400,31 +930,33 @@ STM32\_FreeRTOS\_Project/
 
 
 
-\- STM32F407VGT6
+| Category | Technologies |
 
-\- ARM Cortex-M4
+|---|---|
 
-\- Embedded C
+| MCU | STM32F407VGT6 |
 
-\- FreeRTOS
+| Processor | ARM Cortex-M4 |
 
-\- CMSIS-RTOS2
+| Programming | Embedded C |
 
-\- STM32 HAL
+| RTOS | FreeRTOS |
 
-\- I²C
+| API | CMSIS-RTOS2 |
 
-\- UART
+| Hardware Abstraction | STM32 HAL |
 
-\- BME280
+| Communication | I²C, UART |
 
-\- STM32CubeIDE
+| Sensor | BME280 abstraction |
 
-\- STM32CubeMX
+| IDE | STM32CubeIDE |
 
-\- Renode
+| Configuration | STM32CubeMX |
 
-\- Git / GitHub
+| Simulation | Renode |
+
+| Version Control | Git / GitHub |
 
 
 
@@ -436,19 +968,71 @@ STM32\_FreeRTOS\_Project/
 
 
 
-\- Physical STM32F407 validation
+Possible extensions include:
+
+
+
+\- Physical STM32F407 hardware validation
 
 \- Real BME280 hardware integration
 
-\- Watchdog supervision
+\- Independent watchdog supervision
 
-\- ESP32 / MQTT connectivity
+\- ESP32 Wi-Fi connectivity
+
+\- MQTT communication
 
 \- IoT dashboard
 
-\- Data logging
+\- Environmental data logging
+
+\- SD card storage
+
+\- CAN communication
+
+\- Low-power operation
 
 \- TinyML-based anomaly detection
+
+\- Predictive environmental control
+
+
+
+\---
+
+
+
+\## ✅ Current Status
+
+
+
+The real-time application architecture and control logic have been \*\*functionally validated under Renode simulation\*\*.
+
+
+
+The current version demonstrates:
+
+
+
+\- environmental acquisition;
+
+\- real-time task execution;
+
+\- automatic ventilation control;
+
+\- environmental alarm handling;
+
+\- sensor fault detection;
+
+\- fail-safe behavior;
+
+\- health monitoring;
+
+\- automatic sensor recovery.
+
+
+
+Physical hardware validation remains a future extension.
 
 
 
@@ -460,7 +1044,11 @@ STM32\_FreeRTOS\_Project/
 
 
 
-\*\*STM32 · FreeRTOS · Embedded Systems · Renode\*\*
+\### STM32 · FreeRTOS · Embedded C · Renode
+
+
+
+\*\*Real-Time Environmental Monitoring and Fault-Tolerant Control\*\*
 
 
 
